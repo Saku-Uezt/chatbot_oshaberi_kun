@@ -39,7 +39,7 @@ pip install -r requirements.txt
 
 ---
 
-## 環境変数設定
+# 環境変数設定
 
 ルートディレクトリに .env ファイルを作成し、以下を記載してください。
 
@@ -49,11 +49,11 @@ AZURE_OPENAI_API_KEY=あなたのAPIキー
 
 ---
 
-## 実行方法
+# 実行方法
 streamlit run oshaberi_kun.py
 
 ---
 
-##今後の改善予定
+# 今後の改善予定
 ・ 関西弁/標準語　の切り替え機能
 ・ Azure OpenAIのコンテンツフィルター例外処理
