@@ -47,10 +47,10 @@ DEPLOYMENT_NAME=デプロイ名
 AZURE_OPENAI_API_KEY=あなたのAPIキー
 
 
-
 # 実行方法
 streamlit run oshaberi_kun.py
 
+```
 
 # 今後の改善予定
 ・ 関西弁/標準語　の切り替え機能
