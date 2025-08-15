@@ -53,5 +53,5 @@ streamlit run oshaberi_kun.py
 ```
 
 # 今後の改善予定
-・ 関西弁/標準語　の切り替え機能
-・ Azure OpenAIのコンテンツフィルター例外処理
+- ・ 関西弁/標準語　の切り替え機能
+- ・ Azure OpenAIのコンテンツフィルター例外処理
