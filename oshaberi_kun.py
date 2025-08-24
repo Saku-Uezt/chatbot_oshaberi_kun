@@ -19,28 +19,57 @@ client = AzureOpenAI(
     api_version = "2024-12-01-preview"
 )
 
+# 方言切り替え用のプロンプト設定
+LOCAL_LANG_PROMPT = {
+ "標準語": "あなたはフレンドリーで標準語を使うアシスタントです。あなたの名前はおしゃべりくんです。過去の会話の流れもきちんと覚えて、丁寧に返答してください。" ,
+ "関西弁": "あなたはフレンドリーで関西弁を使うアシスタントです。あなたの名前はおしゃべりくんです。過去の会話の流れもきちんと覚えて、丁寧に返答してください。" ,
+ "うちなーぐち": "あなたはフレンドリーで沖縄方言（本島地方準拠）を使うアシスタントです。あなたの名前はおしゃべりくんです。過去の会話の流れもきちんと覚えて、丁寧に返答してください。"
+}
+
+# 初期メッセージの定義
+INIT_GREETING = {
+ "標準語": "こんにちは！調子はどうですか？なんでも気軽に話しかけてね！" ,  
+ "関西弁": "まいど！調子はどですか？なんでも気軽に話しかけてね～" ,
+ "うちなーぐち": "ハイサイ！調子はどうね？なんでも気軽に話しかけてね～"
+}
+
 # チャット履歴の初期状態メソッド
 # streamlitのsession_state処理を使い、チャットの履歴を保持するリストを用意する
-def init_history():
+def init_history(style: str):
     st.session_state.chat_history = [
         {
             "role": "system",
-            "content":  "あなたはフレンドリーで関西弁を使うアシスタントです。あなたの名前はおしゃべりくんです。過去の会話の流れもきちんと覚えて、丁寧に返答してください。"
+            "content":  LOCAL_LANG_PROMPT[style]
         },
         # 初回メッセージ（assistantから話しかける）
         {
             "role": "assistant",
-            "content": "まいど！調子はどですか？なんでも気軽に話しかけてね～"
+            "content": INIT_GREETING[style]
         }
     ]
 
+# セッション中にリスト"style"が無ければ初期状態を呼び出す（初期のデフォルトは関西弁）
+if "style" not in st.session_state:
+    st.session_state.style = "標準語"
 
 # セッション中にリスト"chat_history"が存在しなければ初期状態を呼び出す
 if "chat_history" not in st.session_state:
-    init_history()
+    init_history(st.session_state.style)
 
 # サイドバーに設定項目
 st.sidebar.header("設定")
+
+# 方言切り替えのラジオボタンの実装
+with st.sidebar:
+    selected_style = st.radio("話し方を選ぶ",list(LOCAL_LANG_PROMPT.keys()), # 方言の辞書のキーをリスト化する
+                              index= list(LOCAL_LANG_PROMPT.keys()).index(st.session_state.style), #リスト化した辞書のキーに該当するインデックスをstyleの中から選んで設定する
+                              key="loc_lang_radio" #streamlitのラジオボタンの引数（ラジオボタンのID定義、別のラジオボタン定義に備えて念のため設定）
+                              )
+
+# selected_styleに変更があれば履歴を初期化し、口調を変更させる
+if selected_style != st.session_state.style:
+    st.session_state.style = selected_style
+    init_history(selected_style)
 
 # temperatureの調整（サイドバーにスライダーを実装する）
 temperature = st.sidebar.slider(
@@ -103,7 +132,7 @@ def add_history(response):
     st.session_state.chat_history.append({"role": "assistant", "content": response}) 
 
 # streamlitのUI構築
-st.title("関西弁チャットボットおしゃべりくん")
+st.title("チャットボットおしゃべりくん")
 
 # チャット履歴を表示する
 for chat in st.session_state.chat_history:
