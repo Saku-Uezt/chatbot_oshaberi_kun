@@ -51,7 +51,9 @@ AZURE_OPENAI_API_KEY=あなたのAPIキー
 streamlit run oshaberi_kun.py
 
 ```
+#更新情報（v1.1）
+-  標準語/関西弁/うちなーぐち（琉球方言）　の切り替え機能を実装しました
 
+```
 # 今後の改善予定
--  関西弁/標準語　の切り替え機能
 -  Azure OpenAIのコンテンツフィルター例外処理
