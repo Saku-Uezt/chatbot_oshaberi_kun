@@ -58,6 +58,7 @@ streamlit run oshaberi_kun.py
 
 ## 今後の改善予定
 -  Azure OpenAIのコンテンツフィルター例外処理
+-  履歴リセット時にエラーが発生するバグ対応
 ---
 
 ## ライセンス
