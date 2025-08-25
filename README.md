@@ -27,8 +27,8 @@ Azure OpenAI API と Streamlit を使って作成した、関西弁で会話で�
 
 ```bash
 # リポジトリのクローン
-git clone https://github.com/<あなたのユーザー名>/<リポジトリ名>.git
-cd <リポジトリ名>
+git clone https://github.com/Saku-Uezt/chatbot_oshaberi_kun.git
+cd chatbot_oshaberi_kun
 
 # 仮想環境作成（任意）
 python -m venv .venv
