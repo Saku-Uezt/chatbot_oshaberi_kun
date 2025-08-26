@@ -85,6 +85,10 @@ temperature = st.sidebar.slider(
 if "confirm_reset" not in st.session_state:
     st.session_state.confirm_reset = False
 
+#リセット時に引数styleを渡す必要があるので変数定義
+if "style" not in st.session_state:
+    st.session_state.style.list(LOCAL_LANG_PROMPT.keys())[0] #デフォルトの場合はこれ（実質動かないが変数定義のため記述）
+
 with st.sidebar:
     #ボタン押下時の確認（リセットフラグON）
     if not st.session_state.confirm_reset:
@@ -99,7 +103,7 @@ with st.sidebar:
         #「はい」ボタンが押下されたときに会話履歴を初期状態にし、フラグをFalseに戻す
         with chat_delete:
             if st.button("はい"):
-                init_history()
+                init_history(st.session_state.style) #定義したstyleをここで渡す
                 st.session_state.confirm_reset = False
                 st.rerun()  # リレンダリングで初期表示に戻す
         #「キャンセル」ボタンが押下されたときはフラグをFalseに戻すだけで何もしない
