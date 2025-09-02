@@ -1,7 +1,8 @@
 import os
 import streamlit as st
-from openai import AzureOpenAI
+from openai import AzureOpenAI, BadRequestError
 from dotenv import load_dotenv
+from datetime import datetime 
 
 load_dotenv()
 
@@ -21,9 +22,9 @@ client = AzureOpenAI(
 
 # 方言切り替え用のプロンプト設定
 LOCAL_LANG_PROMPT = {
- "標準語": "あなたはフレンドリーで標準語を使うアシスタントです。あなたの名前はおしゃべりくんです。過去の会話の流れもきちんと覚えて、丁寧に返答してください。" ,
- "関西弁": "あなたはフレンドリーで関西弁を使うアシスタントです。あなたの名前はおしゃべりくんです。過去の会話の流れもきちんと覚えて、丁寧に返答してください。" ,
- "うちなーぐち": "あなたはフレンドリーで沖縄方言（本島地方準拠）を使うアシスタントです。あなたの名前はおしゃべりくんです。過去の会話の流れもきちんと覚えて、丁寧に返答してください。"
+ "標準語": "あなたはフレンドリーで標準語を使うアシスタントです。あなたの名前はおしゃべりくんです。過去の会話の流れもきちんと覚えて、カジュアルに返答してください。" ,
+ "関西弁": "あなたはフレンドリーで関西弁を使うアシスタントです。あなたの名前はおしゃべりくんです。過去の会話の流れもきちんと覚えて、カジュアルに返答してください。" ,
+ "うちなーぐち": "あなたはフレンドリーで沖縄方言（本島地方準拠）を使うアシスタントです。あなたの名前はおしゃべりくんです。過去の会話の流れもきちんと覚えて、カジュアルに返答してください。"
 }
 
 # 初期メッセージの定義
@@ -122,14 +123,28 @@ def get_response(prompt: str):
         for m in st.session_state.chat_history
     ]
 
-    # API呼び出し（UIに返すためのreturn処理）
-    response = client.chat.completions.create(
-        model=deployment,
-        messages=chat_messages, #サンプルコードではsystem_messageと連結させているが前処理で履歴に追加していることからchat_messagesのみでOK
-        stream=True,
-        temperature=temperature
-    )
-    return response
+
+    # API呼び出し（UIに返すためのreturn処理、APIが返すエラーハンドリングを実装）
+    try:
+        response = client.chat.completions.create(
+            model=deployment,
+            messages=chat_messages, #サンプルコードではsystem_messageと連結させているが前処理で履歴に追加していることからchat_messagesのみでOK
+            stream=True,
+            temperature=temperature
+        )
+        return response
+    
+    except BadRequestError as e:
+        import traceback
+        print("=== AzureOpenAI Error ===")
+        traceback.print_exc() #コンソールにエラーログを出力する
+
+        #システムログに出力する処理をsession_stateに残す
+        if "error_log" not in st.session_state:
+            st.session_state.error_log = [] #エラーログのリストを用意
+        
+        #UI上にエラーを出力
+        return "⚠ システムエラー: 使用できない単語が含まれています。質問内容を変更して、もう一度お試しください。"
 
 # returnしたAPI呼び出し情報をUIに反映
 def add_history(response):
@@ -145,6 +160,57 @@ for chat in st.session_state.chat_history:
         with st.chat_message(chat['role']):
             st.markdown(chat['content'])
 
+## チャット時に見栄えをよくする処理を実装予定（現段階で正常に動作しない）
+
+# # ストリーム内のチャンクから安全にテキスト(content)だけを取り出すジェネレータメソッド
+# def content_stream(stream):
+    
+#     for chunk in stream:
+#         # チャンクにchoicesが無い場合はcontinue処理を実施してスキップし存在するチャンクを取り出す
+#         # 空のチャンクを取り出そうとするとエラーになるのでその対策処理
+#         choices = getattr(chunk, "choices", None)  
+#         if not choices:
+#             continue
+
+#         ch0 = choices[0]
+
+#         # delta = 今回追加された差分（content, role, tool_calls などが入る）
+#         delta = getattr(ch0, "delta", None)
+#         # 同様にオブジェクトが無い場合は処理をスキップして取り出す
+#         if delta is None:
+#             continue
+
+#         # content 取得（dict/obj両対応）
+#         content = delta.get("content") if isinstance(delta, dict) else getattr(delta, "content", None)
+#         # contentが存在する場合yieldして逐次UIに返す
+#         if content:
+#             yield content
+
+
+# # 先頭行の空白や改行をトリミングするメソッド（チャット欄の見栄えを整えるメソッド）
+# def trim_leading_whitespace(gen):
+#     started = False 
+#     #結合用空文字列を用意する
+#     buffer = ""
+#     #取り出したチャンクに対してループ処理を行う（初回処理（startedフラグがFalseの場合））
+#     for piece in gen: 
+#         if not started:
+#             #チャンクを足し合わせていく 
+#             buffer += piece
+#             # 足し合わせたチャンクの先頭の改行コード \n やスペースを除去
+#             stripped = buffer.lstrip() 
+#             #空白や改行だけのチャンクは無視して次のチャンク処理に移る
+#             if stripped == "":
+#                 continue  
+#             #startedフラグをTrueにする          
+#             started = True
+#             #トリミングしたチャンクをyieldする
+#             yield stripped
+#         #二回目の処理以降はそのままyieldして出力する
+#         else:
+#             yield piece
+
+
 # ユーザーの入力を受け取る  
 if prompt := st.chat_input("なんでも話してみてね～"):
     # ユーザー発話を履歴に追加
@@ -155,7 +221,16 @@ if prompt := st.chat_input("なんでも話してみてね～"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        stream = get_response(prompt)
-        response = st.write_stream(stream)
-        add_history(response)
+        #インスタンスのレスポンスを定義
+        instance_res = get_response(prompt)
+
+    # インスタンスオブジェクトの型チェック
+    # （正常時はストリーム型を返し、エラー時はstr型で返ってくるためハンドリングする必要がある）
+    if isinstance(instance_res, str):
+        # 例外時はエラーメッセージ（str）なので赤帯で表示
+        st.error(instance_res)
+    else:
+        # 通常時はストリーム（チャンク列）なので安全ジェネレータを噛ませる
+        text = st.write_stream(instance_res)
+        add_history(text.strip())
 
