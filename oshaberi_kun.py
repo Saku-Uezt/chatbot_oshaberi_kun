@@ -1,6 +1,6 @@
 import os
 import streamlit as st
-from openai import AzureOpenAI, BadRequestError
+from openai import AzureOpenAI, BadRequestError, APIConnectionError
 from dotenv import load_dotenv
 from datetime import datetime 
 
@@ -49,7 +49,7 @@ def init_history(style: str):
         }
     ]
 
-# セッション中にリスト"style"が無ければ初期状態を呼び出す（初期のデフォルトは関西弁）
+# セッション中にリスト"style"が無ければ初期状態を呼び出す（初期のデフォルトは標準語）
 if "style" not in st.session_state:
     st.session_state.style = "標準語"
 
@@ -88,7 +88,7 @@ if "confirm_reset" not in st.session_state:
 
 #リセット時に引数styleを渡す必要があるので変数定義
 if "style" not in st.session_state:
-    st.session_state.style.list(LOCAL_LANG_PROMPT.keys())[0] #デフォルトの場合はこれ（実質動かないが変数定義のため記述）
+    st.session_state.style = list(LOCAL_LANG_PROMPT.keys())[0] #デフォルトの場合はこれ（実質動かないが変数定義のため記述）
 
 with st.sidebar:
     #ボタン押下時の確認（リセットフラグON）
@@ -134,17 +134,21 @@ def get_response(prompt: str):
         )
         return response
     
+    # Azure OpenAI上でコンテンツフィルタにかかったときの例外処理
     except BadRequestError as e:
         import traceback
         print("=== AzureOpenAI Error ===")
         traceback.print_exc() #コンソールにエラーログを出力する
-
-        #システムログに出力する処理をsession_stateに残す
-        if "error_log" not in st.session_state:
-            st.session_state.error_log = [] #エラーログのリストを用意
-        
         #UI上にエラーを出力
         return "⚠ システムエラー: 使用できない単語が含まれています。質問内容を変更して、もう一度お試しください。"
+    
+    # API通信エラーのときの例外処理
+    except APIConnectionError as e:
+        import traceback
+        print("=== AzureOpenAI Connection Error ===")
+        traceback.print_exc() #コンソールにエラーログを出力する
+        #UI上にエラーを出力
+        return "⚠ 通信エラーが発生しました。ネットワーク環境をご確認のうえ、再度お試しください。"
 
 # returnしたAPI呼び出し情報をUIに反映
 def add_history(response):
@@ -153,62 +157,94 @@ def add_history(response):
 # streamlitのUI構築
 st.title("チャットボットおしゃべりくん")
 
+# assistantの発話段落下がりを防止する、ページレイアウト用のcssの設定を変更する （markdownを使ってcss/htmlを直接いじる裏技コード）
+# 参考：XSS対策として固定CSS以外は"unsafe_allow_html=True"を使用しないこと
+st.markdown("""
+<style>
+/* 吹き出し内：最初の段落の上マージンを無くす */
+.stChatMessage .stMarkdown p:first-child {
+  margin-top: 0 !important;
+}
+/* 吹き出し内：直後に来るブロック要素（ul, pre, blockquote など）も上マージンをゼロに */
+.stChatMessage .stMarkdown > *:first-child {
+  margin-top: 0 !important;
+}
+
+/* エラーバナー（st.error など）も段落の上下マージンを詰める */
+.stAlert p {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* assistantの吹き出しの色変更 */
+div[aria-label="Chat message from assistant"] {
+    background: linear-gradient(135deg, #fef9c3, #fde68a) !important;  /* 薄い黄色を適用、左上から右下へのグラデ */
+    border-radius: 16px;  /* 吹き出しの丸み設定 */
+    padding: 10px;  /* 外枠のパディング設定 */ 
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.1);  /* 外枠の色と影の設定、灰色、透明度0.1 */
+}
+
+/* userの吹き出しの色変更 */
+div[aria-label="Chat message from user"] {
+    background: linear-gradient(135deg, #dbeafe, #93c5fd) !important;  /* 薄い水色を適用、左上から右下へのグラデ */
+    border-radius: 16px;  /* 吹き出しの丸み設定 */
+    padding: 10px;  /* 外枠のパディング設定 */ 
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.1);  /* 外枠の色と影の設定、灰色、透明度0.1 */ 
+}
+</style>
+""", unsafe_allow_html=True)
+
 # チャット履歴を表示する
 for chat in st.session_state.chat_history:
     # roleがsystemの場合はUI上に表示させない
     if chat["role"] != "system":
         with st.chat_message(chat['role']):
-            st.markdown(chat['content'])
+            st.markdown(chat['content'].lstrip())
 
-## チャット時に見栄えをよくする処理を実装予定（現段階で正常に動作しない）
-
-# # ストリーム内のチャンクから安全にテキスト(content)だけを取り出すジェネレータメソッド
-# def content_stream(stream):
+# ストリーム内のチャンクから安全にテキスト(content)だけを取り出すジェネレータメソッド
+def content_stream(stream):
     
-#     for chunk in stream:
-#         # チャンクにchoicesが無い場合はcontinue処理を実施してスキップし存在するチャンクを取り出す
-#         # 空のチャンクを取り出そうとするとエラーになるのでその対策処理
-#         choices = getattr(chunk, "choices", None)  
-#         if not choices:
-#             continue
+    for chunk in stream:
+        # チャンクにchoicesが無い場合はcontinue処理を実施してスキップし存在するチャンクを取り出す
+        # 空のチャンクを取り出そうとするとエラーになるのでその対策処理
+        choices = getattr(chunk, "choices", None)  
+        if not choices:
+            continue
+        # delta = 今回追加された差分（content, role, tool_calls などが入る）
+        delta = getattr(choices[0], "delta", None)
+        # 同様にオブジェクトが無い場合は処理をスキップして取り出す
+        if not delta :
+            continue
 
-#         ch0 = choices[0]
-
-#         # delta = 今回追加された差分（content, role, tool_calls などが入る）
-#         delta = getattr(ch0, "delta", None)
-#         # 同様にオブジェクトが無い場合は処理をスキップして取り出す
-#         if delta is None:
-#             continue
-
-#         # content 取得（dict/obj両対応）
-#         content = delta.get("content") if isinstance(delta, dict) else getattr(delta, "content", None)
-#         # contentが存在する場合yieldして逐次UIに返す
-#         if content:
-#             yield content
+        # content 取得（dict/obj両対応）
+        content = delta.get("content") if isinstance(delta, dict) else getattr(delta, "content", None)
+        # contentが存在する場合yieldして逐次UIに返す
+        if content:
+            yield content
 
 
-# # 先頭行の空白や改行をトリミングするメソッド（チャット欄の見栄えを整えるメソッド）
-# def trim_leading_whitespace(gen):
-#     started = False 
-#     #結合用空文字列を用意する
-#     buffer = ""
-#     #取り出したチャンクに対してループ処理を行う（初回処理（startedフラグがFalseの場合））
-#     for piece in gen: 
-#         if not started:
-#             #チャンクを足し合わせていく 
-#             buffer += piece
-#             # 足し合わせたチャンクの先頭の改行コード \n やスペースを除去
-#             stripped = buffer.lstrip() 
-#             #空白や改行だけのチャンクは無視して次のチャンク処理に移る
-#             if stripped == "":
-#                 continue  
-#             #startedフラグをTrueにする          
-#             started = True
-#             #トリミングしたチャンクをyieldする
-#             yield stripped
-#         #二回目の処理以降はそのままyieldして出力する
-#         else:
-#             yield piece
+# 先頭行の空白や改行をトリミングするメソッド（チャット欄の見栄えを整えるメソッド）
+def trim_leading_whitespace(gen):
+    started = False 
+    #結合用空文字列を用意する
+    buffer = ""
+    #取り出したチャンクに対してループ処理を行う（初回処理（startedフラグがFalseの場合））
+    for piece in gen: 
+        if not started:
+            #チャンクを足し合わせていく 
+            buffer += piece
+            #足し合わせたチャンクの先頭の改行コード \n やスペースを除去
+            stripped = buffer.lstrip() 
+            #空白や改行だけのチャンクは無視して次のチャンク処理に移る
+            if stripped == "":
+                continue  
+            #startedフラグをTrueにする          
+            started = True
+            #トリミングしたチャンクをyieldする
+            yield stripped
+        #二回目の処理以降はそのままyieldして出力する
+        else:
+            yield piece
 
 
 # ユーザーの入力を受け取る  
@@ -224,13 +260,14 @@ if prompt := st.chat_input("なんでも話してみてね～"):
         #インスタンスのレスポンスを定義
         instance_res = get_response(prompt)
 
-    # インスタンスオブジェクトの型チェック
-    # （正常時はストリーム型を返し、エラー時はstr型で返ってくるためハンドリングする必要がある）
-    if isinstance(instance_res, str):
-        # 例外時はエラーメッセージ（str）なので赤帯で表示
-        st.error(instance_res)
-    else:
-        # 通常時はストリーム（チャンク列）なので安全ジェネレータを噛ませる
-        text = st.write_stream(instance_res)
-        add_history(text.strip())
-
+        # インスタンスオブジェクトの型チェック
+        # （正常時はストリーム型を返し、エラー時はstr型で返ってくるためハンドリングする必要がある）
+        if isinstance(instance_res, str):
+            # 例外時はエラーメッセージ（str）なので赤帯で表示
+            st.error(instance_res)
+        else:
+        # 先頭の空白/改行を除去してから表示
+            # 先頭の改行/空白を“ストリーム前処理メソッド”で除去してから write_streamメソッドに渡す
+            sanitized_stream = trim_leading_whitespace(content_stream(instance_res))
+            text = st.write_stream(sanitized_stream)
+            add_history(text.lstrip())   # 保存時も念のためlstrip
