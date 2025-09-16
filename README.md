@@ -72,10 +72,10 @@ streamlit run oshaberi_kun.py
 
 ## UIイメージ
 <p align="center">
-  <img src="./images/UI_image.PNG" width="55%">
-  <img src="./images/UI_mobile.jpg" height="400px">
+  <img src="./images/UI_image.PNG" height="350px">
+  <img src="./images/UI_mobile.jpg" height="300px">
 </p>
----
+
 
 ## ライセンス
 このプロジェクトは MIT ライセンスのもとで公開されています。
