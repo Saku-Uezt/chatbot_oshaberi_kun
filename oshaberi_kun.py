@@ -191,6 +191,12 @@ div[aria-label="Chat message from user"] {
     padding: 10px;  /* 外枠のパディング設定 */ 
     box-shadow: 2px 2px 6px rgba(0,0,0,0.1);  /* 外枠の色と影の設定、灰色、透明度0.1 */ 
 }
+            
+/* チャット文字の色変更（モバイル版のダークテーマが適用されると白文字になって見づらくなるため強制的に文字色を黒に） */
+div[aria-label="Chat message from assistant"] .stMarkdown p,
+div[aria-label="Chat message from user"] .stMarkdown p {
+    color: #111827 !important; /* ほぼ黒のグレー */
+}
 </style>
 """, unsafe_allow_html=True)
 
