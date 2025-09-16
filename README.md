@@ -70,7 +70,7 @@ streamlit run oshaberi_kun.py
 -  モバイルブラウザ上でのレイアウト対応
 ---
 
-## UIイメージ
+## UIイメージ（ブラウザ/モバイル）
 <p align="center">
   <img src="./images/UI_image.PNG" height="350px">
   <img src="./images/UI_mobile.jpg" height="300px">
