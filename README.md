@@ -72,7 +72,7 @@ streamlit run oshaberi_kun.py
 
 ## UIイメージ
 <p align="center">
-  <img src="./images/UI_image.PNG" width="45%">
+  <img src="./images/UI_image.PNG" width="50%">
   <img src="./images/UI_mobile.jpg" width="25%">
 </p>
 ---
