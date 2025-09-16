@@ -71,8 +71,10 @@ streamlit run oshaberi_kun.py
 ---
 
 ## UIイメージ
-![チャットボットのUIイメージ（ブラウザ）](./images/UI_image.PNG)
-![チャットボットのUIイメージ（モバイルブラウザ）](./images/UI_mobile.jpg)
+<p align="center">
+  <img src="./images/UI_image.PNG" width="45%">
+  <img src="./images/UI_mobile.jpg" width="25%">
+</p>
 ---
 
 ## ライセンス
