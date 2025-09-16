@@ -69,8 +69,11 @@ streamlit run oshaberi_kun.py
 -  その他のエラーに関する例外処理の実装
 -  モバイルブラウザ上でのレイアウト対応
 ---
+
 ## UIイメージ
-![チャットボットのUIイメージ](./images/UI_image.PNG)
+![チャットボットのUIイメージ（ブラウザ）](./images/UI_image.PNG)
+![チャットボットのUIイメージ（モバイルブラウザ）](./images/UI_mobile.jpg)
 ---
+
 ## ライセンス
 このプロジェクトは MIT ライセンスのもとで公開されています。
