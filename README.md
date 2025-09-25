@@ -42,7 +42,21 @@ cd chatbot_oshaberi_kun
 
 # 仮想環境作成（任意）
 python -m venv .venv
-source .venv/bin/activate  # Windowsは .venv\Scripts\activate
+
+#仮想環境のアクティベート(仮想環境を作成した場合に実行)
+※Windowsの場合
+cmd.exe（コマンドプロンプト）またはVSCodeの統合ターミナルで、以下を実行してください：
+.\.venv\Scripts\activate.bat
+
+注意：PowerShellで実行する場合は、事前に
+Set-ExecutionPolicy -Scope Process RemoteSigned
+を実行する必要があります。
+
+※Macの場合
+source .venv/bin/activate
+
+（仮想環境から抜けるには）
+deactivate
 
 # 必要パッケージのインストール
 pip install -r requirements.txt
