@@ -32,6 +32,11 @@ Azure OpenAI API と Streamlit を使って作成した、3種の日本語で会
 
 ```bash
 # リポジトリのクローン
+(任意の書き込み可能なディレクトリに移動してgit clone以下のコマンドを実行してください)
+例: cd C:\Users\<ユーザー名>\Documents または cd C:\Users\<ユーザー名>\OneDrive\デスクトップ (OneDrive使用時)
+
+※PowerShellでホームディレクトリに移動する場合: cd ~
+
 git clone https://github.com/Saku-Uezt/chatbot_oshaberi_kun.git
 cd chatbot_oshaberi_kun
 
